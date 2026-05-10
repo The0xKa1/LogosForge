@@ -33,7 +33,7 @@ export default function HomePage() {
   const [report, setReport] = useState("");
 
   const refresh = useCallback(async () => {
-    setState(await api.state());
+    setState(await api.stateSummary());
   }, []);
 
   useEffect(() => {
@@ -103,8 +103,9 @@ export default function HomePage() {
     setError(null);
     setProgressSteps(steps);
     setCurrentStep(0);
+    let stepTimer: ReturnType<typeof setInterval> | undefined;
     try {
-      const stepTimer = setInterval(() => {
+      stepTimer = setInterval(() => {
         setCurrentStep((prev) => {
           if (prev < steps.length - 2) return prev + 1;
           return prev;
@@ -119,6 +120,7 @@ export default function HomePage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "操作失败");
     } finally {
+      if (stepTimer) clearInterval(stepTimer);
       setTimeout(() => {
         setBusy(null);
         setProgressSteps([]);
@@ -198,7 +200,7 @@ export default function HomePage() {
                   {book.graph_built && <em className="graph-badge">已构建</em>}
                 </div>
                 <small>
-                  {book.chapters.length} 章 · {book.effective_chars.toLocaleString()} 有效字
+                  {(book.chapter_count ?? book.chapters.length).toLocaleString()} 章 · {book.effective_chars.toLocaleString()} 有效字
                 </small>
               </article>
             ))}

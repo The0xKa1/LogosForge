@@ -16,6 +16,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   state: () => request<ProjectState>("/api/state"),
+  stateSummary: () => request<ProjectState>("/api/state/summary"),
   upload: (files: FileList) => {
     const form = new FormData();
     Array.from(files).forEach((file) => form.append("files", file));

@@ -30,7 +30,7 @@ export default function GraphPage() {
   const [currentStep, setCurrentStep] = useState(0);
 
   const refresh = useCallback(async () => {
-    setState(await api.state());
+    setState(await api.stateSummary());
   }, []);
 
   useEffect(() => {
@@ -53,8 +53,9 @@ export default function GraphPage() {
     setError(null);
     setProgressSteps(steps);
     setCurrentStep(0);
+    let stepTimer: ReturnType<typeof setInterval> | undefined;
     try {
-      const stepTimer = setInterval(() => {
+      stepTimer = setInterval(() => {
         setCurrentStep((prev) => (prev < steps.length - 2 ? prev + 1 : prev));
       }, 15000);
 
@@ -65,6 +66,7 @@ export default function GraphPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "操作失败");
     } finally {
+      if (stepTimer) clearInterval(stepTimer);
       setTimeout(() => {
         setBusy(null);
         setProgressSteps([]);

@@ -76,6 +76,37 @@ def get_state():
     return store.load()
 
 
+@app.get("/api/state/summary")
+def get_state_summary():
+    state = store.load()
+    textbooks = []
+    for book in state.textbooks:
+        data = book.model_dump(mode="json", exclude={"chapters"})
+        data["chapters"] = []
+        data["chapter_count"] = len(book.chapters)
+        textbooks.append(data)
+
+    return {
+        "textbooks": textbooks,
+        "graph": state.graph,
+        "decisions": state.decisions,
+        "chunks": [],
+        "chat_history": state.chat_history[-20:],
+        "integrated_text": state.integrated_text,
+        "compression_ratio": state.compression_ratio,
+        "summary": {
+            "textbook_count": len(state.textbooks),
+            "completed_textbook_count": len([book for book in state.textbooks if book.status == ParseStatus.completed]),
+            "chunk_count": len(state.chunks),
+            "node_count": len(state.graph.nodes),
+            "edge_count": len(state.graph.edges),
+            "decision_count": len(state.decisions),
+            "original_effective_chars": sum(book.effective_chars for book in state.textbooks),
+            "integrated_chars": len(state.integrated_text),
+        },
+    }
+
+
 @app.post("/api/reset")
 def reset_state():
     return store.reset()

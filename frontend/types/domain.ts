@@ -21,6 +21,7 @@ export interface Textbook {
   status: ParseStatus;
   error?: string | null;
   chapters: Chapter[];
+  chapter_count?: number;
   graph_built?: boolean;
 }
 
@@ -76,6 +77,16 @@ export interface ProjectState {
   chat_history: ChatMessage[];
   integrated_text: string;
   compression_ratio: number;
+  summary?: {
+    textbook_count: number;
+    completed_textbook_count: number;
+    chunk_count: number;
+    node_count: number;
+    edge_count: number;
+    decision_count: number;
+    original_effective_chars: number;
+    integrated_chars: number;
+  };
 }
 
 export interface RagResponse {
@@ -88,4 +99,3 @@ export interface RagResponse {
   }>;
   source_chunks: string[];
 }
-
