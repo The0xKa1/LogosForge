@@ -22,7 +22,7 @@ export const api = {
     return request<{ textbooks: ProjectState["textbooks"] }>("/api/textbooks/upload", { method: "POST", body: form });
   },
   parse: () => request<{ textbooks: ProjectState["textbooks"] }>("/api/textbooks/parse", { method: "POST", body: JSON.stringify({}) }),
-  buildGraph: () => request<Pick<ProjectState, "graph" | "decisions" | "integrated_text">>("/api/graph/build", { method: "POST", body: JSON.stringify({}) }),
+  buildGraph: (textbookIds?: string[], useLlm: boolean = true) => request<Pick<ProjectState, "graph" | "decisions" | "integrated_text">>("/api/graph/build", { method: "POST", body: JSON.stringify({ textbook_ids: textbookIds ?? null, use_llm: useLlm }) }),
   mergeGraph: () => request<Pick<ProjectState, "graph" | "decisions" | "integrated_text" | "compression_ratio">>("/api/graph/merge", { method: "POST" }),
   indexRag: () => request<{ indexed_textbooks: number; chunk_count: number }>("/api/rag/index", { method: "POST" }),
   ragStatus: () => request<{ indexed_textbooks: number; chunk_count: number }>("/api/rag/status"),

@@ -6,7 +6,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from backend.app.config import settings
-from backend.app.models import Chunk, ParseStatus, Textbook, new_id
+from backend.app.models import Chapter, Chunk, ParseStatus, Textbook, new_id
 from backend.app.services.rag import index_chunks
 from backend.app.storage import store
 
@@ -69,13 +69,36 @@ def load_chunks(db_path: Path) -> list[Chunk]:
 
 
 def build_textbooks(chunks: list[Chunk]) -> list[Textbook]:
-    grouped: dict[str, list[Chunk]] = defaultdict(list)
+    # 按 (textbook, chapter) 分组，重建章节结构
+    chapter_groups: dict[tuple[str, str], list[Chunk]] = defaultdict(list)
     for chunk in chunks:
-        grouped[chunk.textbook].append(chunk)
+        key = (chunk.textbook, chunk.chapter)
+        chapter_groups[key].append(chunk)
+
+    # 按 textbook 分组，收集其 chapters
+    textbook_chapters: dict[str, list[Chapter]] = defaultdict(list)
+    for (textbook_title, chapter_title), chapter_chunks in sorted(chapter_groups.items()):
+        # 拼接同组 chunk 的文本
+        content = "\n\n".join(chunk.text for chunk in chapter_chunks)
+        # 计算页码范围
+        pages = [chunk.page for chunk in chapter_chunks]
+        page_start = min(pages) if pages else 1
+        page_end = max(pages) if pages else 1
+
+        chapter = Chapter(
+            title=chapter_title,
+            page_start=page_start,
+            page_end=page_end,
+            content=content,
+            char_count=len(content),
+        )
+        textbook_chapters[textbook_title].append(chapter)
 
     textbooks = []
-    for title, items in sorted(grouped.items()):
+    for title, chapters in sorted(textbook_chapters.items()):
         source_name = f"{title}.pdf" if not title.endswith(".pdf") else title
+        # 从 chapters 中获取所有 chunks 用于统计
+        all_textbook_chunks = [c for c in chunks if c.textbook == title]
         textbooks.append(
             Textbook(
                 textbook_id=_textbook_id(source_name),
@@ -83,11 +106,11 @@ def build_textbooks(chunks: list[Chunk]) -> list[Textbook]:
                 title=title.removesuffix(".pdf"),
                 file_format="pdf",
                 size=0,
-                total_pages=max((chunk.page for chunk in items), default=0),
-                total_chars=sum(len(chunk.text) for chunk in items),
-                effective_chars=sum(len(re.sub(r"\s+", "", chunk.text)) for chunk in items),
+                total_pages=max((chunk.page for chunk in all_textbook_chunks), default=0),
+                total_chars=sum(len(chunk.text) for chunk in all_textbook_chunks),
+                effective_chars=sum(len(re.sub(r"\s+", "", chunk.text)) for chunk in all_textbook_chunks),
                 status=ParseStatus.completed,
-                chapters=[],
+                chapters=chapters,
             )
         )
     return textbooks

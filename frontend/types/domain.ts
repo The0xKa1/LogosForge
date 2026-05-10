@@ -21,6 +21,7 @@ export interface Textbook {
   status: ParseStatus;
   error?: string | null;
   chapters: Chapter[];
+  graph_built?: boolean;
 }
 
 export interface KnowledgeNode {

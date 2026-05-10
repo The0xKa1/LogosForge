@@ -2,10 +2,11 @@
 
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { BookOpen, FileUp, GitMerge, MessageSquare, Network, RefreshCw, Search, Send, Sparkles } from "lucide-react";
-import { GraphCanvas } from "@/components/GraphCanvas";
+import { BookOpen, FileUp, GitMerge, MessageSquare, RefreshCw, Send, Sparkles } from "lucide-react";
+import { NavBar } from "@/components/NavBar";
+import { ProgressModal, type ProgressStep } from "@/components/ProgressModal";
 import { api } from "@/lib/api";
-import type { KnowledgeNode, ProjectState, RagResponse } from "@/types/domain";
+import type { ProjectState, RagResponse } from "@/types/domain";
 
 const initialState: ProjectState = {
   textbooks: [],
@@ -21,11 +22,11 @@ type PanelTab = "decisions" | "rag" | "chat" | "report";
 
 export default function HomePage() {
   const [state, setState] = useState<ProjectState>(initialState);
-  const [selectedNode, setSelectedNode] = useState<KnowledgeNode | null>(null);
   const [tab, setTab] = useState<PanelTab>("decisions");
-  const [search, setSearch] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [progressSteps, setProgressSteps] = useState<ProgressStep[]>([]);
+  const [currentStep, setCurrentStep] = useState(0);
   const [question, setQuestion] = useState("炎症的核心概念是什么？");
   const [ragAnswer, setRagAnswer] = useState<RagResponse | null>(null);
   const [teacherMessage, setTeacherMessage] = useState("我觉得被删除的关键知识点应该保留，请更新整合方案。");
@@ -46,21 +47,83 @@ export default function HomePage() {
       original,
       integrated,
       ratio: original ? integrated / original : state.compression_ratio,
-      completed: state.textbooks.filter((book) => book.status === "completed").length
+      completed: state.textbooks.filter((book) => book.status === "completed").length,
+      graphBuilt: state.textbooks.filter((book) => book.graph_built).length,
     };
   }, [state]);
 
+  const STEP_CONFIGS: Record<string, ProgressStep[]> = {
+    "上传中": [
+      { label: "读取文件", detail: "正在读取本地文件..." },
+      { label: "上传到服务器", detail: "正在传输文件..." },
+      { label: "完成", detail: "上传成功" },
+    ],
+    "解析中": [
+      { label: "读取教材", detail: "正在读取上传的文件..." },
+      { label: "识别章节结构", detail: "正则匹配章节标题..." },
+      { label: "提取内容", detail: "解析各章节文本..." },
+      { label: "统计字数", detail: "计算有效字数..." },
+      { label: "完成", detail: "解析完成" },
+    ],
+    "整合中": [
+      { label: "构建各教材图谱", detail: "逐本生成知识点图谱..." },
+      { label: "规范化知识点", detail: "同义词合并、去重..." },
+      { label: "合并决策", detail: "生成 keep/merge/remove 决策..." },
+      { label: "压缩整合文本", detail: "按 30% 压缩率生成整合内容..." },
+      { label: "完成", detail: "整合完成" },
+    ],
+    "索引中": [
+      { label: "构建分块", detail: "将教材章节切分为语义块..." },
+      { label: "向量化", detail: "BGE 模型生成 embedding..." },
+      { label: "写入 ChromaDB", detail: "建立向量索引..." },
+      { label: "完成", detail: "RAG 索引就绪" },
+    ],
+    "检索中": [
+      { label: "问题向量化", detail: "将问题转为向量..." },
+      { label: "相似度检索", detail: "从 ChromaDB 检索相关片段..." },
+      { label: "生成回答", detail: "调用 LLM 生成答案..." },
+      { label: "完成", detail: "回答生成完成" },
+    ],
+    "反馈处理中": [
+      { label: "分析教师反馈", detail: "调用 LLM 分析反馈意图..." },
+      { label: "匹配决策", detail: "关联整合决策..." },
+      { label: "生成回复", detail: "生成对话回复..." },
+      { label: "完成", detail: "处理完成" },
+    ],
+    "生成报告中": [
+      { label: "汇总数据", detail: "收集整合数据..." },
+      { label: "生成报告", detail: "渲染 Markdown 报告..." },
+      { label: "完成", detail: "报告生成完成" },
+    ],
+  };
+
   async function run<T>(label: string, task: () => Promise<T>, after?: (value: T) => void) {
+    const steps = STEP_CONFIGS[label] || [{ label, detail: "处理中..." }];
     setBusy(label);
     setError(null);
+    setProgressSteps(steps);
+    setCurrentStep(0);
     try {
+      const stepTimer = setInterval(() => {
+        setCurrentStep((prev) => {
+          if (prev < steps.length - 2) return prev + 1;
+          return prev;
+        });
+      }, label === "整合中" ? 15000 : 3000);
+
       const value = await task();
+      clearInterval(stepTimer);
+      setCurrentStep(steps.length - 1);
       after?.(value);
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "操作失败");
     } finally {
-      setBusy(null);
+      setTimeout(() => {
+        setBusy(null);
+        setProgressSteps([]);
+        setCurrentStep(0);
+      }, 800);
     }
   }
 
@@ -72,21 +135,22 @@ export default function HomePage() {
 
   return (
     <main className="workspace">
+      <NavBar />
+
       <header className="topbar">
         <div className="brand-block">
-          <span className="eyebrow">LogosForge</span>
           <h1>学科知识整合工作台</h1>
           <p>把多本教材压缩成可讲授、可追溯、可迭代的课程骨架。</p>
         </div>
         <div className="metrics">
           <Metric label="教材" value={`${totals.completed}/${state.textbooks.length}`} />
+          <Metric label="已构建" value={`${totals.graphBuilt}/${state.textbooks.length}`} />
           <Metric label="节点" value={String(state.graph.nodes.length)} />
-          <Metric label="关系" value={String(state.graph.edges.length)} />
           <Metric label="压缩比" value={`${(totals.ratio * 100).toFixed(1)}%`} warn={totals.ratio > 0.3} />
         </div>
       </header>
 
-      <section className="shell">
+      <section className="shell shell-two-col">
         <aside className="left-panel">
           <label className="upload-zone">
             <span className="upload-mark"><FileUp size={24} /></span>
@@ -99,9 +163,6 @@ export default function HomePage() {
             <button onClick={() => run("解析中", () => api.parse())} disabled={!!busy || !state.textbooks.length}>
               <BookOpen size={16} /> 解析教材
             </button>
-            <button onClick={() => run("建图中", () => api.buildGraph())} disabled={!!busy || !totals.completed}>
-              <Network size={16} /> 构建图谱
-            </button>
             <button onClick={() => run("整合中", () => api.mergeGraph())} disabled={!!busy || totals.completed < 2}>
               <GitMerge size={16} /> 跨教材整合
             </button>
@@ -111,12 +172,13 @@ export default function HomePage() {
           </div>
 
           {busy && (
-            <div className="notice">
-              <span>{busy}...</span>
-              <i />
-            </div>
+            <ProgressModal
+              title={busy}
+              steps={progressSteps}
+              currentStep={currentStep}
+              error={error}
+            />
           )}
-          {error && <div className="error">{error}</div>}
 
           <div className="book-list">
             {!state.textbooks.length && (
@@ -127,11 +189,14 @@ export default function HomePage() {
             )}
             {state.textbooks.map((book) => (
               <article key={book.textbook_id} className="book-card">
-                <div>
+                <div className="book-info">
                   <strong>{book.title}</strong>
-                  <span>{book.file_format.toUpperCase()} · {(book.size / 1024 / 1024).toFixed(2)} MB</span>
+                  <span>{book.file_format.toUpperCase()} · {book.size > 0 ? `${(book.size / 1024 / 1024).toFixed(2)} MB` : `${(book.effective_chars / 1024).toFixed(0)}K 字`}</span>
                 </div>
-                <em data-status={book.status}>{book.status}</em>
+                <div className="book-badges">
+                  <em data-status={book.status}>{book.status === "completed" ? "已解析" : book.status === "failed" ? "失败" : book.status}</em>
+                  {book.graph_built && <em className="graph-badge">已构建</em>}
+                </div>
                 <small>
                   {book.chapters.length} 章 · {book.effective_chars.toLocaleString()} 有效字
                 </small>
@@ -139,32 +204,6 @@ export default function HomePage() {
             ))}
           </div>
         </aside>
-
-        <section className="center-panel">
-          <div className="graph-toolbar">
-            <div className="search-box">
-              <Search size={16} />
-              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索知识点并高亮节点" />
-            </div>
-            <span>频次映射节点尺寸，来源映射节点色相</span>
-          </div>
-          <GraphCanvas graph={state.graph} selectedNode={selectedNode} search={search} onSelect={setSelectedNode} />
-          {selectedNode && (
-            <div className="node-detail">
-              <button onClick={() => setSelectedNode(null)}>关闭</button>
-              <h3>{selectedNode.name}</h3>
-              <p>{selectedNode.definition}</p>
-              <dl>
-                <dt>类型</dt>
-                <dd>{selectedNode.category}</dd>
-                <dt>章节</dt>
-                <dd>{selectedNode.chapter}</dd>
-                <dt>来源</dt>
-                <dd>{selectedNode.source_textbooks.join("、") || selectedNode.textbook_id}</dd>
-              </dl>
-            </div>
-          )}
-        </section>
 
         <aside className="right-panel">
           <nav className="tabs">

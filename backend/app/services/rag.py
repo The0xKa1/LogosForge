@@ -230,7 +230,11 @@ def _answer_with_llm(question: str, ranked: list[Chunk]) -> str | None:
         logger.warning("RAG LLM call failed, using local fallback: %s", exc)
         return None
 
-    content = response.choices[0].message.content if response.choices else ""
+    msg = response.choices[0].message if response.choices else None
+    content = msg.content if msg else ""
+    # Fallback: some models (e.g. mimo) put output in reasoning_content
+    if not content or not content.strip():
+        content = getattr(msg, "reasoning_content", "") or ""
     return content.strip() or None
 
 
@@ -296,8 +300,17 @@ def _embedding_function():
 class SentenceTransformerEmbeddingFunction:
     def __init__(self, model_name: str) -> None:
         from sentence_transformers import SentenceTransformer
+        import torch
 
-        self.model = SentenceTransformer(model_name, device="mps")
+        # 自动检测设备：mps (Apple Silicon) -> cuda (NVIDIA) -> cpu
+        if torch.backends.mps.is_available():
+            device = "mps"
+        elif torch.cuda.is_available():
+            device = "cuda"
+        else:
+            device = "cpu"
+
+        self.model = SentenceTransformer(model_name, device=device)
 
     def __call__(self, input: list[str]) -> list[list[float]]:
         vectors = self.model.encode(input, normalize_embeddings=True)

@@ -40,6 +40,7 @@ class Textbook(BaseModel):
     status: ParseStatus = ParseStatus.uploaded
     error: str | None = None
     chapters: list[Chapter] = Field(default_factory=list)
+    graph_built: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -106,6 +107,7 @@ class ChatMessage(BaseModel):
 class ProjectState(BaseModel):
     textbooks: list[Textbook] = Field(default_factory=list)
     graph: KnowledgeGraph = Field(default_factory=KnowledgeGraph)
+    graphs: dict[str, KnowledgeGraph] = Field(default_factory=dict)
     decisions: list[MergeDecision] = Field(default_factory=list)
     chunks: list[Chunk] = Field(default_factory=list)
     chat_history: list[ChatMessage] = Field(default_factory=list)

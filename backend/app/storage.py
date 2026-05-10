@@ -4,10 +4,11 @@ import json
 from pathlib import Path
 from threading import Lock
 
+from .config import settings
 from .models import ProjectState
 
 
-DATA_DIR = Path(__file__).resolve().parent / "data"
+DATA_DIR = settings.data_dir
 STATE_PATH = DATA_DIR / "state.json"
 
 
