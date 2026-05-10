@@ -1,0 +1,12 @@
+{
+  "name": "zju-hackathon-knowledge-agent",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build:frontend": "npm --prefix frontend run build",
+    "typecheck:frontend": "npm --prefix frontend run typecheck",
+    "dev:backend": "uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000"
+  }
+}
+

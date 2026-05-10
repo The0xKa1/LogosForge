@@ -1,0 +1,6 @@
+# Optional heavy AI/RAG dependencies.
+# Install these when you want persistent Chroma vector search and local embedding models.
+chromadb==0.5.23
+sentence-transformers==5.4.1
+transformers==4.46.3
+tokenizers==0.20.3
