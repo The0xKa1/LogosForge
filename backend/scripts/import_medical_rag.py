@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import sqlite3
 from collections import defaultdict
@@ -11,7 +12,7 @@ from backend.app.services.rag import index_chunks
 from backend.app.storage import store
 
 
-SOURCE_DB = Path("/Users/zhangjinkai/textbooks/medical-rag/chroma_db/chroma.sqlite3")
+SOURCE_DB = Path(os.getenv("MEDICAL_RAG_CHROMA_DB", "data/medical-rag/chroma_db/chroma.sqlite3"))
 
 
 def main() -> None:

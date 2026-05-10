@@ -150,9 +150,10 @@ BACKEND_ORIGIN=http://116.62.86.237
 
 ## 复用 medical-rag 数据
 
-如果本机已有 `/Users/zhangjinkai/textbooks/medical-rag/chroma_db/chroma.sqlite3`，可以导入旧项目的医学教材 chunks：
+如果本机已有旧项目的 Chroma sqlite，例如 `data/medical-rag/chroma_db/chroma.sqlite3`，可以导入医学教材 chunks：
 
 ```bash
+export MEDICAL_RAG_CHROMA_DB=/path/to/medical-rag/chroma_db/chroma.sqlite3
 python3 -m backend.scripts.import_medical_rag
 ```
 

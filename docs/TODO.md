@@ -39,7 +39,7 @@
 
 ## 风险与备注
 
-- 真实教材导入依赖本机 `/Users/zhangjinkai/textbooks/medical-rag` 的既有数据和模型缓存；换机器后需要重新准备数据。
+- 真实教材导入依赖外部 medical-rag Chroma sqlite 和模型缓存；换机器后需要通过 `MEDICAL_RAG_CHROMA_DB` 重新指定数据路径。
 - LLM 配置来自本地 `backend/.env`，禁止提交真实 key。
 - mimo 模型 reasoning_content 消耗大量 token，max_tokens 需 >= 2000 才能保证 content 非空。
 - state.json 约 26MB，包含完整教材数据，git 已排除。

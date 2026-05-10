@@ -23,6 +23,7 @@ backend/chroma_db/
 .cache/
 .playwright-mcp/
 logosforge-redesign*.png
+import_log.txt
 data/textbooks/*.pdf
 *.pdf
 
