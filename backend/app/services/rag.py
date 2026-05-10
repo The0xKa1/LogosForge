@@ -16,6 +16,18 @@ COLLECTION_NAME = "textbook_chunks"
 
 
 def build_chunks(textbooks: list[Textbook], chunk_size: int = 700, overlap: int = 80) -> list[Chunk]:
+    """将教材章节切分为固定大小的语义块，用于 RAG 索引。
+
+    使用滑动窗口分块，每个 chunk 携带教材名、章节、页码等元数据。
+
+    Args:
+        textbooks: 已解析的教材列表。
+        chunk_size: 每块最大字符数。
+        overlap: 相邻块的重叠字符数。
+
+    Returns:
+        Chunk 对象列表，每个 chunk 的 text 长度 <= chunk_size。
+    """
     chunks: list[Chunk] = []
     for book in textbooks:
         for chapter in book.chapters:
@@ -76,10 +88,33 @@ def index_chunks(chunks: list[Chunk], show_progress: bool = False) -> dict[str, 
 
 
 def answer_query(question: str, chunks: list[Chunk], top_k: int = 5) -> RagAnswer:
+    """RAG 问答入口：检索相关 chunk 并生成带引用的回答。
+
+    检索策略：ChromaDB 向量检索 → BM25 词项检索 → 本地词项检索（fallback）。
+    回答策略：LLM 生成 → 本地摘要 fallback。
+
+    Args:
+        question: 用户问题。
+        chunks: 已索引的知识块列表。
+        top_k: 检索返回的最大块数。
+
+    Returns:
+        RagAnswer 包含回答文本、引用列表和源文本。
+    """
     if not chunks:
         return RagAnswer(answer="当前知识库中未找到相关信息", citations=[], source_chunks=[])
 
-    ranked = _retrieve_with_chroma(question, top_k) or _retrieve_lexical(question, chunks, top_k)
+    # 混合检索：ChromaDB 向量 + BM25 词项，RRF 融合
+    chroma_results = _retrieve_with_chroma(question, top_k * 2)
+    bm25_results = _retrieve_bm25(question, chunks, top_k * 2)
+
+    if chroma_results and bm25_results:
+        ranked = _rrf_fuse(chroma_results, bm25_results, top_k)
+    elif chroma_results:
+        ranked = chroma_results[:top_k]
+    else:
+        ranked = _retrieve_lexical(question, chunks, top_k)
+
     ranked = [chunk for chunk in ranked if chunk.relevance_score > 0]
 
     if not ranked:
@@ -143,7 +178,75 @@ def _retrieve_lexical(question: str, chunks: list[Chunk], top_k: int) -> list[Ch
     )[:top_k]
 
 
+def _retrieve_bm25(question: str, chunks: list[Chunk], top_k: int) -> list[Chunk]:
+    """使用 BM25Okapi 检索 top-k 相关块。
+
+    Args:
+        question: 用户问题文本。
+        chunks: 已索引的知识块列表。
+        top_k: 返回结果数。
+
+    Returns:
+        按 BM25 分数排序的 Chunk 列表，失败时返回空列表。
+    """
+    try:
+        from rank_bm25 import BM25Okapi
+    except ImportError:
+        return []
+
+    corpus = [_terms(chunk.text) for chunk in chunks]
+    bm25 = BM25Okapi(corpus)
+    scores = bm25.get_scores(_terms(question))
+    ranked_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
+    return [
+        chunks[i].model_copy(update={"relevance_score": float(scores[i])})
+        for i in ranked_indices
+        if scores[i] > 0
+    ]
+
+
+def _rrf_fuse(list_a: list[Chunk], list_b: list[Chunk], top_k: int, k: int = 60) -> list[Chunk]:
+    """Reciprocal Rank Fusion 合并两个排序列表。
+
+    RRF score = Σ 1/(k + rank_i)，其中 k=60 是常数。
+
+    Args:
+        list_a: 第一个排序结果（如 ChromaDB 向量检索）。
+        list_b: 第二个排序结果（如 BM25 词项检索）。
+        top_k: 返回结果数。
+        k: RRF 常数，默认 60。
+
+    Returns:
+        按 RRF 分数排序的 Chunk 列表。
+    """
+    score_map: dict[str, float] = {}
+    chunk_map: dict[str, Chunk] = {}
+
+    for rank, chunk in enumerate(list_a):
+        score_map[chunk.chunk_id] = score_map.get(chunk.chunk_id, 0) + 1 / (k + rank)
+        chunk_map[chunk.chunk_id] = chunk
+
+    for rank, chunk in enumerate(list_b):
+        score_map[chunk.chunk_id] = score_map.get(chunk.chunk_id, 0) + 1 / (k + rank)
+        chunk_map[chunk.chunk_id] = chunk
+
+    sorted_ids = sorted(score_map, key=lambda cid: score_map[cid], reverse=True)[:top_k]
+    return [
+        chunk_map[cid].model_copy(update={"relevance_score": score_map[cid]})
+        for cid in sorted_ids
+    ]
+
+
 def _retrieve_with_chroma(question: str, top_k: int) -> list[Chunk] | None:
+    """使用 ChromaDB 向量检索 top-k 相关块。
+
+    Args:
+        question: 用户问题文本。
+        top_k: 返回结果数。
+
+    Returns:
+        按相关度排序的 Chunk 列表，检索失败时返回 None 触发 fallback。
+    """
     try:
         collection = _get_collection(reset=False)
         if collection.count() == 0:

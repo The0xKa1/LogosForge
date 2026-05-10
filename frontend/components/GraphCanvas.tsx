@@ -15,6 +15,19 @@ interface GraphCanvasProps {
 
 const palette = ["#0f766e", "#8a704f", "#455a64", "#9a4f43", "#486a51", "#6f6474", "#63724f"];
 
+const categoryShapeMap: Record<string, string> = {
+  "概念": "ellipse",
+  "机制": "diamond",
+  "结构": "hexagon",
+  "方法": "round-rectangle",
+  "现象": "triangle",
+  "应用": "star",
+};
+
+function categoryShape(category?: string): string {
+  return categoryShapeMap[category ?? ""] ?? "ellipse";
+}
+
 // 关系类型配置
 const relationConfig = {
   prerequisite: { color: "#2196f3", label: "前置知识", dash: "solid" },
@@ -68,6 +81,7 @@ export function GraphCanvas({ graph, search, onSelect, onSearchChange }: GraphCa
           color: palette[index % palette.length],
           source: node.source_textbooks?.[0] ?? node.textbook_id,
           category: node.category,
+          shape: categoryShape(node.category),
         },
       })),
       ...graph.edges.map((edge) => ({
@@ -98,6 +112,7 @@ export function GraphCanvas({ graph, search, onSelect, onSearchChange }: GraphCa
           style: {
             label: "data(label)",
             "background-color": "data(color)",
+            shape: "data(shape)" as any,
             color: "#1f2926",
             width: "mapData(frequency, 1, 8, 38, 86)",
             height: "mapData(frequency, 1, 8, 38, 86)",

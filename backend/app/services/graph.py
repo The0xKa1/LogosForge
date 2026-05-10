@@ -34,6 +34,19 @@ def _process_chapter(textbook: Textbook, chapter, max_nodes: int, use_llm: bool)
 
 
 def build_graph_for_textbook(textbook: Textbook, max_nodes_per_chapter: int = 8, max_workers: int = 6, use_llm: bool = True) -> KnowledgeGraph:
+    """为单本教材构建知识图谱。
+
+    使用 ThreadPoolExecutor 并行处理各章节，每章抽取知识点并推断关系。
+
+    Args:
+        textbook: 已解析的教材对象，包含 chapters 列表。
+        max_nodes_per_chapter: 每章最多抽取的知识点数量。
+        max_workers: 并行线程数。
+        use_llm: 是否使用 LLM 抽取（False 则使用正则 fallback）。
+
+    Returns:
+        KnowledgeGraph 包含所有章节的节点和边。
+    """
     nodes: list[KnowledgeNode] = []
     edges: list[KnowledgeEdge] = []
 
@@ -52,6 +65,17 @@ def build_graph_for_textbook(textbook: Textbook, max_nodes_per_chapter: int = 8,
 
 
 def merge_graphs(graphs: list[KnowledgeGraph]) -> tuple[KnowledgeGraph, list[MergeDecision]]:
+    """合并多个教材图谱，跨教材对齐同名节点。
+
+    按 _canonical(name) 分组节点，同名节点合并（取最长定义），其余保留。
+    边根据节点合并映射重写，自环和重复边被去除。
+
+    Args:
+        graphs: 待合并的图谱列表，每个来自一本教材。
+
+    Returns:
+        (merged_graph, decisions) 合并后的图谱和合并/保留/删除决策列表。
+    """
     all_nodes = list(itertools.chain.from_iterable(graph.nodes for graph in graphs))
     all_edges = list(itertools.chain.from_iterable(graph.edges for graph in graphs))
     groups: dict[str, list[KnowledgeNode]] = defaultdict(list)

@@ -6,6 +6,18 @@ from ..models import ProjectState
 
 
 def render_report(state: ProjectState, project_root: Path) -> str:
+    """生成整合报告 Markdown 并写入 report/整合报告.md。
+
+    从 ProjectState 中提取教材数量、压缩比、决策统计等数据，
+    渲染为结构化 Markdown 报告。
+
+    Args:
+        state: 当前项目状态，包含教材、图谱、决策等完整数据。
+        project_root: 项目根目录，用于确定报告写入路径。
+
+    Returns:
+        生成的 Markdown 报告内容字符串。
+    """
     original_chars = sum(book.effective_chars for book in state.textbooks)
     integrated_chars = len(state.integrated_text)
     ratio = integrated_chars / original_chars if original_chars else 0

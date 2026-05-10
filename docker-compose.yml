@@ -24,11 +24,7 @@ services:
       - postgres
 
   frontend:
-    image: node:20-alpine
-    working_dir: /app/frontend
-    command: sh -c "npm install && npm run dev"
-    volumes:
-      - .:/app
+    build: ./frontend
     ports:
       - "3000:3000"
     environment:
