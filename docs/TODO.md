@@ -15,8 +15,8 @@
 - [ ] @next-agent 给整合结果增加“压缩前后对比”视图，展示原始字符数、精华字符数、压缩比和保留理由。
 - [ ] @next-agent 增加 RAG benchmark 小脚本，覆盖医学教材常见问答、引用命中率和无答案拒答。
 - [ ] @next-agent 增加后端最小测试集，覆盖上传解析、图谱构建、RAG fallback、教师反馈更新和报告生成。
-- [ ] @next-agent 为前端增加加载中、失败重试、空状态和长任务提示，尤其是索引导入与图谱构建。
-- [ ] @next-agent 优化图谱视觉编码：节点来源颜色、频次大小、关系类型样式、点击后的证据侧栏。
+- [ ] @next-agent 为前端增加更完整的长任务体验：索引导入进度、图谱构建进度、失败重试和操作日志。
+- [ ] @next-agent 在真实导入数据下继续优化图谱交互：关系类型图例、来源过滤、节点证据侧栏、关系路径高亮。
 - [ ] @next-agent 为 `report/整合报告.md` 接入真实运行统计，避免报告只停留在静态样例。
 - [ ] @next-agent 检查 Docker Compose 端到端启动，补齐 Chroma/Postgres 环境变量与持久化卷说明。
 
@@ -30,9 +30,12 @@
 - [x] @codex 接入 ChromaDB + BGE embedding 检索，并保留词项检索 fallback。
 - [x] @codex 增加 medical-rag 导入脚本和索引进度条。
 - [x] @codex 补齐需求分析、系统设计、Agent 架构说明、接口文档、README 和报告草稿。
+- [x] @codex 优化前端视觉系统：LogosForge 品牌顶栏、低饱和色板、三栏工作台质感、空状态、进度提示、按钮反馈和图谱配色。
+- [x] @codex 扩展后端 CORS，支持 Next dev 自动切到 `3001/3002` 时继续本地联调。
 
 ## 风险与备注
 
 - 真实教材导入依赖本机 `/Users/zhangjinkai/textbooks/medical-rag` 的既有数据和模型缓存；换机器后需要重新准备数据。
 - LLM 配置来自本地 `backend/.env`，禁止提交真实 key。
 - 当前抽取、对齐和整合仍偏 demo 级，赛题答辩时应明确说明 mock fallback 和后续生产化路径。
+- 若当前机器上还有其他用户手动启动的后端或前端进程，收尾时应先确认端口占用再停止，避免误杀非本项目服务。

@@ -73,9 +73,10 @@ export default function HomePage() {
   return (
     <main className="workspace">
       <header className="topbar">
-        <div>
-          <h1>学科知识整合智能体</h1>
-          <p>多教材知识图谱、跨书去重提纯、RAG 精准问答与教师反馈迭代</p>
+        <div className="brand-block">
+          <span className="eyebrow">LogosForge</span>
+          <h1>学科知识整合工作台</h1>
+          <p>把多本教材压缩成可讲授、可追溯、可迭代的课程骨架。</p>
         </div>
         <div className="metrics">
           <Metric label="教材" value={`${totals.completed}/${state.textbooks.length}`} />
@@ -88,8 +89,8 @@ export default function HomePage() {
       <section className="shell">
         <aside className="left-panel">
           <label className="upload-zone">
-            <FileUp size={24} />
-            <strong>上传教材</strong>
+            <span className="upload-mark"><FileUp size={24} /></span>
+            <strong>导入教材源</strong>
             <span>PDF / Markdown / TXT / DOCX，支持批量</span>
             <input type="file" multiple accept=".pdf,.md,.markdown,.txt,.docx" onChange={onFiles} />
           </label>
@@ -109,10 +110,21 @@ export default function HomePage() {
             </button>
           </div>
 
-          {busy && <div className="notice">{busy}...</div>}
+          {busy && (
+            <div className="notice">
+              <span>{busy}...</span>
+              <i />
+            </div>
+          )}
           {error && <div className="error">{error}</div>}
 
           <div className="book-list">
+            {!state.textbooks.length && (
+              <div className="empty-list">
+                <strong>还没有教材</strong>
+                <span>先导入样例或上传文件，左侧流程会按解析、建图、整合、索引推进。</span>
+              </div>
+            )}
             {state.textbooks.map((book) => (
               <article key={book.textbook_id} className="book-card">
                 <div>
@@ -134,7 +146,7 @@ export default function HomePage() {
               <Search size={16} />
               <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索知识点并高亮节点" />
             </div>
-            <span>节点大小表示跨教材频次，颜色表示教材来源</span>
+            <span>频次映射节点尺寸，来源映射节点色相</span>
           </div>
           <GraphCanvas graph={state.graph} selectedNode={selectedNode} search={search} onSelect={setSelectedNode} />
           {selectedNode && (
@@ -170,6 +182,12 @@ export default function HomePage() {
                 <strong data-warn={totals.ratio > 0.3}>{(totals.ratio * 100).toFixed(1)}%</strong>
               </div>
               <div className="decision-list">
+                {!state.decisions.length && (
+                  <div className="empty-list">
+                    <strong>等待整合决策</strong>
+                    <span>解析至少两本教材后运行跨教材整合，这里会展示 merge / keep / remove。</span>
+                  </div>
+                )}
                 {state.decisions.slice(0, 24).map((decision) => (
                   <article key={decision.decision_id}>
                     <header>
@@ -210,6 +228,9 @@ export default function HomePage() {
           {tab === "chat" && (
             <Panel title="教师多轮对话" icon={<MessageSquare size={16} />}>
               <div className="chat-history">
+                {!state.chat_history.length && (
+                  <p data-role="assistant">教师反馈会在这里沉淀为整合策略调整，并同步影响决策状态。</p>
+                )}
                 {state.chat_history.map((message) => (
                   <p key={message.id} data-role={message.role}>{message.content}</p>
                 ))}

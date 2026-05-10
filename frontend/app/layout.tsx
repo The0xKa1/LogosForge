@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "学科知识整合智能体",
+  title: "LogosForge",
   description: "多教材知识图谱、跨书整合与 RAG 精准问答工作台"
 };
 

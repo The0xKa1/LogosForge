@@ -11,7 +11,7 @@ interface GraphCanvasProps {
   onSelect: (node: KnowledgeNode) => void;
 }
 
-const palette = ["#0f766e", "#7c3aed", "#c2410c", "#2563eb", "#be123c", "#4d7c0f", "#9333ea"];
+const palette = ["#0f766e", "#8a704f", "#455a64", "#9a4f43", "#486a51", "#6f6474", "#63724f"];
 
 export function GraphCanvas({ graph, search, onSelect }: GraphCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -45,7 +45,7 @@ export function GraphCanvas({ graph, search, onSelect }: GraphCanvasProps) {
     const cy = cytoscape({
       container: containerRef.current,
       elements,
-      layout: { name: "cose", animate: false, padding: 42, nodeRepulsion: () => 9000 },
+      layout: { name: "cose", animate: false, padding: 56, nodeRepulsion: () => 9800 },
       wheelSensitivity: 0.18,
       style: [
         {
@@ -53,28 +53,29 @@ export function GraphCanvas({ graph, search, onSelect }: GraphCanvasProps) {
           style: {
             label: "data(label)",
             "background-color": "data(color)",
-            color: "#17211f",
+            color: "#1f2926",
             width: "mapData(frequency, 1, 8, 38, 86)",
             height: "mapData(frequency, 1, 8, 38, 86)",
             "font-size": 11,
-            "font-weight": 700,
+            "font-weight": 600,
             "text-valign": "bottom",
             "text-margin-y": 8,
             "border-width": 2,
-            "border-color": "#f8fafc"
+            "border-color": "#f6f4ee",
+            "overlay-opacity": 0
           }
         },
         {
           selector: "edge",
           style: {
-            width: 1.4,
-            "line-color": "#9ca3af",
-            "target-arrow-color": "#9ca3af",
+            width: 1.2,
+            "line-color": "#b8beb6",
+            "target-arrow-color": "#b8beb6",
             "target-arrow-shape": "triangle",
             "curve-style": "bezier",
             label: "data(label)",
             "font-size": 9,
-            color: "#64748b"
+            color: "#747f7a"
           }
         },
         {
@@ -83,7 +84,7 @@ export function GraphCanvas({ graph, search, onSelect }: GraphCanvasProps) {
         },
         {
           selector: ".matched",
-          style: { "border-color": "#111827", "border-width": 4 }
+          style: { "border-color": "#1f2926", "border-width": 4 }
         }
       ]
     });

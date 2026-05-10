@@ -21,6 +21,8 @@ backend/app/data/state.json
 backend/uploads/*
 backend/chroma_db/
 .cache/
+.playwright-mcp/
+logosforge-redesign*.png
 data/textbooks/*.pdf
 *.pdf
 
