@@ -1,6 +1,6 @@
 import type { ProjectState, RagResponse } from "@/types/domain";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
+const API_BASE = process.env.NODE_ENV === "production" ? "" : process.env.NEXT_PUBLIC_API_BASE ?? "";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -34,4 +34,3 @@ export const api = {
     }),
   generateReport: () => request<{ path: string; content: string }>("/api/report/generate", { method: "POST" })
 };
-

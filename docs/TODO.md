@@ -15,6 +15,7 @@
 - [ ] 检查 Docker Compose 端到端启动，补齐 Chroma/Postgres 环境变量与持久化卷说明。
 - [ ] 图谱页面增加节点关系路径高亮（选中节点时高亮关联路径）。
 - [ ] 前端状态管理拆分：page.tsx 仍较复杂，可拆分为 hooks/useProjectState.ts + 子组件。
+- [ ] 等 Vercel 部署最新 commit 后，访问 `https://logosforge.the0xka1.cc/api/health`、`/api/state` 和页面工作台，确认同源 API rewrite 生效。
 
 ## 已完成
 
@@ -34,6 +35,7 @@
 - [x] 前端类型修复：Textbook 添加 graph_built，buildGraph 支持参数。
 - [x] 解析端点跳过已有 chapters 的教材，不再覆盖导入脚本的状态。
 - [x] 前端生产构建通过，生成 `/`（5.4kB）和 `/graph`（120kB）两个路由。
+- [x] 生产前端 API 改为同源 `/api/*`，Next rewrite 到阿里云 80 端口，绕开公网 `8000` 和 mixed content 问题。
 
 ## 风险与备注
 
@@ -41,4 +43,5 @@
 - LLM 配置来自本地 `backend/.env`，禁止提交真实 key。
 - mimo 模型 reasoning_content 消耗大量 token，max_tokens 需 >= 2000 才能保证 content 非空。
 - state.json 约 26MB，包含完整教材数据，git 已排除。
+- `/api/state` 会返回约 26MB JSON，生产首页初始化会偏重，后续建议拆成摘要接口 + 按需详情接口。
 - 若当前机器上还有其他用户手动启动的后端或前端进程，收尾时应先确认端口占用再停止。

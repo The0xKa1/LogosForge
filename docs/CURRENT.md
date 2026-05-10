@@ -82,9 +82,11 @@ python3 -m backend.scripts.import_medical_rag
 - mimo 模型的 `reasoning_content` 会消耗大量 token，LLM 调用的 max_tokens 需 >= 2000。
 - 图谱构建对大教材（248 章）仍需约 7 分钟（并行后），小教材（8 章）约 12 秒。
 - 当前数据层以本地 JSON 状态模拟，生产化需迁移到 Postgres。
+- 生产前端改为同源 `/api/*` 调用：Vercel 通过 `frontend/next.config.mjs` rewrite 到阿里云 `http://116.62.86.237/api/*`，复用已可达的 80 端口，避免 HTTPS 前端直连 `http://...:8000` 的 mixed content 问题。
+- 当前 `http://116.62.86.237/api/health` 正常；公网 `8000` 仍可不依赖，后续如要开放 8000 需继续检查阿里云安全组规则。
 
 ## 下一位 Agent 的起点
 
 1. 先检查 `git status --short`，避免覆盖用户新改动。
-2. 启动后端和前端，访问 `/` 和 `/graph` 验证两个页面。
+2. 等 Vercel 部署最新 commit 后，先访问 `https://logosforge.the0xka1.cc/api/health` 验证同源 API rewrite，再访问 `/` 和 `/graph` 验证两个页面。
 3. 若要继续增强，参考 `docs/TODO.md` 中的待办项。
